@@ -1,0 +1,93 @@
+pipeline {
+    agent { label 'dynamic-agent' } 
+
+    environment {
+        PODMAN_API    = 'http://192.168.56.21:2375/v1.40'
+        APP_NAME      = 'jellyfin-production'
+        IMAGE_NAME    = 'docker.io/jellyfin/jellyfin:latest'
+        APP_REPO_URL  = 'https://github.com/jellyfin/jellyfin.git'
+        
+        DOTNET_CLI_HOME = "${WORKSPACE}/.dotnet_home"
+        PATH            = "${WORKSPACE}/.dotnet:${env.PATH}"
+        DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = 'true'
+    }
+
+    stages {
+        stage('1. Clone Jellyfin Code') {
+            steps {
+                echo '======================================================'
+                echo 'STEP 1: Syncing Upstream Source Tree'
+                echo '======================================================'
+                git url: "${APP_REPO_URL}", branch: 'master'
+            }
+        }
+
+        stage('🛠️ 2. Provision Runtime SDK') {
+            steps {
+                echo '======================================================'
+                echo '🛠️ STEP 2: Dynamically Fetching Official .NET SDK'
+                echo '======================================================'
+                sh 'curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh'
+                sh 'chmod +x dotnet-install.sh'
+                sh './dotnet-install.sh --channel 10.0 --install-dir .dotnet'
+                sh 'dotnet --version'
+            }
+        }
+
+        stage('3. Run Functional Unit Tests') {
+            steps {
+                echo '======================================================'
+                echo 'STEP 3: Executing Upstream dotnet test Framework'
+                echo '======================================================'
+                sh 'dotnet test src/Jellyfin.Extensions --configuration Release'
+                echo '✅ SUCCESS: All compiled code assertions passed validation!'
+            }
+        }
+
+        stage('4. Production Deployment') {
+            steps {
+                echo '======================================================'
+                echo 'STEP 4: Orchestrating Podman API Deployment'
+                echo '======================================================'
+                
+                // 1. Terminate and remove any conflicting container builds
+                sh "curl -X POST '${PODMAN_API}/containers/${APP_NAME}/stop' || true"
+                sh "curl -X DELETE '${PODMAN_API}/containers/${APP_NAME}' || true"
+                
+                // 🔥 2. NEW CRITICAL STEP: Command the remote engine to explicitly fetch the image
+                echo 'Instructing Podman host to pull official Jellyfin production layers...'
+                sh "curl -X POST '${PODMAN_API}/images/create?fromImage=docker.io/jellyfin/jellyfin&tag=latest'"
+                
+                // 3. Command the Podman API engine to construct the production sandbox
+                echo 'Deploying new production container instance...'
+                sh """
+                    curl -X POST -H "Content-Type: application/json" \
+                    -d '{
+                        "Image": "${IMAGE_NAME}",
+                        "HostConfig": {
+                            "PortBindings": {
+                                "8096/tcp": [{ "HostPort": "8096" }]
+                            },
+                            "Binds": [
+                                "/home/vagrant/jellyfin/config:/config:Z",
+                                "/home/vagrant/jellyfin/cache:/cache:Z"
+                            ],
+                            "RestartPolicy": { "Name": "unless-stopped" }
+                        }
+                    }' \
+                    '${PODMAN_API}/containers/create?name=${APP_NAME}'
+                """
+                
+                // 4. Fire up the freshly configured instance
+                sh "curl -X POST '${PODMAN_API}/containers/${APP_NAME}/start'"
+                echo '🎉 SUCCESS: Jellyfin production environment updated via API!'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline concluded execution with final state: ${currentBuild.currentResult}"
+        }
+    }
+}
