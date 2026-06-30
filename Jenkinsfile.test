@@ -22,10 +22,10 @@ pipeline {
             }
         }
 
-        stage('🛠️ 2. Provision Runtime SDK') {
+        stage('2. Provision Runtime SDK') {
             steps {
                 echo '======================================================'
-                echo '🛠️ STEP 2: Dynamically Fetching Official .NET SDK'
+                echo 'STEP 2: Dynamically Fetching Official .NET SDK'
                 echo '======================================================'
                 sh 'curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh'
                 sh 'chmod +x dotnet-install.sh'
@@ -40,7 +40,7 @@ pipeline {
                 echo 'STEP 3: Executing Upstream dotnet test Framework'
                 echo '======================================================'
                 sh 'dotnet test src/Jellyfin.Extensions --configuration Release'
-                echo '✅ SUCCESS: All compiled code assertions passed validation!'
+                echo 'SUCCESS: All compiled code assertions passed validation!'
             }
         }
 
@@ -50,15 +50,12 @@ pipeline {
                 echo 'STEP 4: Orchestrating Podman API Deployment'
                 echo '======================================================'
                 
-                // 1. Terminate and remove any conflicting container builds
                 sh "curl -X POST '${PODMAN_API}/containers/${APP_NAME}/stop' || true"
                 sh "curl -X DELETE '${PODMAN_API}/containers/${APP_NAME}' || true"
                 
-                // 🔥 2. NEW CRITICAL STEP: Command the remote engine to explicitly fetch the image
                 echo 'Instructing Podman host to pull official Jellyfin production layers...'
                 sh "curl -X POST '${PODMAN_API}/images/create?fromImage=docker.io/jellyfin/jellyfin&tag=latest'"
                 
-                // 3. Command the Podman API engine to construct the production sandbox
                 echo 'Deploying new production container instance...'
                 sh """
                     curl -X POST -H "Content-Type: application/json" \
@@ -78,9 +75,8 @@ pipeline {
                     '${PODMAN_API}/containers/create?name=${APP_NAME}'
                 """
                 
-                // 4. Fire up the freshly configured instance
                 sh "curl -X POST '${PODMAN_API}/containers/${APP_NAME}/start'"
-                echo '🎉 SUCCESS: Jellyfin production environment updated via API!'
+                echo 'SUCCESS: Jellyfin production environment updated via API!'
             }
         }
     }
