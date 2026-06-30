@@ -17,7 +17,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/podman system service --time=0 tcp://0.0.0.0:2375
+ExecStart=/usr/bin/podman system service --time=0 tcp:0.0.0.0:2375
 Restart=always
 
 [Install]
@@ -36,4 +36,4 @@ sudo systemctl enable --now podman-api.service
 
 # This prevents Jenkins from timing out during your first pipeline run.
 
-sudo podman pull jenkins/inbound-agent:latest
+sudo podman pull docker.io/jenkins/inbound-agent:latest
