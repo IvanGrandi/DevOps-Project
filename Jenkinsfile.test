@@ -2,6 +2,7 @@ pipeline {
     agent { label 'dynamic-agent' } 
 
     environment {
+        DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1521450285392724032/Y_eKlO4j5s8I4iYZ2lI9sb61zupVyROOeCXBUTgj_SRz3zeCTOMwsQEu27OKRe_jcXc0"
         PODMAN_API    = 'http://192.168.56.21:2375/v1.40'
         APP_NAME      = 'jellyfin-production'
         IMAGE_NAME    = 'docker.io/jellyfin/jellyfin:latest'
@@ -79,11 +80,56 @@ pipeline {
                 echo 'SUCCESS: Jellyfin production environment updated via API!'
             }
         }
+
+        stage('5. Sanity Verification & Discord Notification') {
+            steps {
+                echo '======================================================'
+                echo 'STEP 5: Verifying App Response Status & Alerting Channel'
+                echo '======================================================'
+                echo 'Waiting 8 seconds for Jellyfin web server routing tables to warm up...'
+                sleep 8
+                
+                sh 'curl -s -o /dev/null -w "%{http_code}" http://192.168.56.21:8096 | grep -E "200|302"'
+                echo 'Success: Live deployment response verified!'
+
+                sh """
+                    curl -H "Content-Type: application/json" \
+                    -X POST \
+                    -d '{
+                        "embeds": [{
+                            "title": "Pipeline Deployment Success",
+                            "color": 3066993,
+                            "description": "**Job:** `${JOB_NAME}`\\n**Build Run:** `#${BUILD_NUMBER}`\\n\\n🚀 **Status Update:**\\n• All .NET 10 test projects compiled cleanly.\\n• Target container instantiated via remote Podman API on VM2.\\n• Web entry point verified operational.",
+                            "fields": [
+                                { "name": "Live Access Endpoint", "value": "http://192.168.56.21:8096", "inline": false }
+                            ],
+                            "footer": { "text": "Automated Cloud Infrastructure Verification Agent" }
+                        }]
+                    }' \
+                    '${DISCORD_WEBHOOK}'
+                """
+            }
+        }
     }
 
     post {
         always {
             echo "Pipeline concluded execution with final state: ${currentBuild.currentResult}"
+        }
+        failure {
+            sh """
+                curl -H "Content-Type: application/json" \
+                -X POST \
+                -d '{
+                    "embeds": [{
+                        "title": "CI/CD Pipeline Defect Detected",
+                        "color": 15158332,
+                        "description":  **Build Failure Detected!**\\n\\n**Job:** `${JOB_NAME}`\\n**Build Run:** `#${BUILD_NUMBER}`\\n\\nThe workflow execution halted during engine runtime checks. Review the Jenkins console logs immediately.",
+                        "footer": { "text": "EFREI DevOps Notification Agent" }
+                    }]
+                }' \
+                '${DISCORD_WEBHOOK}'
+            """
         }
     }
 }
