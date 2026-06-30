@@ -37,3 +37,9 @@ sudo systemctl enable --now podman-api.service
 # This prevents Jenkins from timing out during your first pipeline run.
 
 sudo podman pull docker.io/jenkins/inbound-agent:latest
+
+# Verify status
+
+sudo systemctl start podman-api.service
+sudo systemctl status podman-api.service
+sudo ss -tlnp | grep 2375
