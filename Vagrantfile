@@ -23,8 +23,8 @@ Vagrant.configure("2") do |config|
   # ==========================================
   # VM2: Pipeline Agent & Production Server
   # ==========================================
-  config.vm.define "docker-host" do |docker|
-    docker.vm.hostname = "docker-host"
+  config.vm.define "podman-host" do |docker|
+    docker.vm.hostname = "podman-host"
     
     docker.vm.network "private_network", ip: "192.168.56.21"
     docker.vm.network "forwarded_port", guest: 8080, host: 8083
@@ -36,7 +36,7 @@ Vagrant.configure("2") do |config|
       vb.gui = false
       vb.memory = 2048 
       vb.cpus = 2
-      vb.name = "Docker-Host"
+      vb.name = "Podman-Host"
     end
   end
 end
