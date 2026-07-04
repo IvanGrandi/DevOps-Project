@@ -1,28 +1,55 @@
+## Commands to launch Vm1 with Jenkins
+
+### 1. Connect to the Jenkins Virtual Machine
+
+```bash
+vagrant ssh jenkins-master
+```
+
+### 2. Update Package Lists
+
+```bash
 sudo apt-get update -y
+```
 
+### 3. Install Java Dependencies
+
+```bash
 sudo apt-get install -y fontconfig openjdk-21-jre
+```
 
+### 4. Download Jenkins GPG Key
+
+```bash
 sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+```
 
+Downloads the official Jenkins GPG signing key and saves it to the system's keyring. This key verifies the integrity and authenticity of the Jenkins packages before installation.
+
+### 5. Add Jenkins Repository to Sources List
+
+```bash
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+```
 
+Adds the official Jenkins stable repository to the system's package source list, explicitly referencing the downloaded GPG key for secure package verification.
+
+### 6. Install Jenkins
+
+```bash
 sudo apt-get update -y
 sudo apt-get install -y jenkins
+```
 
+Updates the package lists again to include the newly added Jenkins repository, and then proceeds to download and install the Jenkins service.
+
+### 7. Retrieve the Initial Administrator Password
+
+```bash
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 
-### Go to local host 8082 to test jenkins, create an account, and use the admin password
+```
 
-ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa
+### 8. Verification and Setup
 
-cat ~/.ssh/id_rsa.pub
-
-### We copy the key inside the Vm2 and Vm3 with nano
-
-### Test the conection
-
-vagrant@ubuntu-jammy:~$ ssh -o StrictHostKeyChecking=no vagrant@192.168.56.21 "echo VM2 Connection Successful"
-VM2 Connection Successful
-vagrant@ubuntu-jammy:~$ ssh -o StrictHostKeyChecking=no vagrant@192.168.56.22 "echo VM3 Connection Successful"
-Warning: Permanently added '192.168.56.22' (ED25519) to the list of known hosts.
-VM3 Connection Successful
+Go to localhost:8082 to test jenkins, create an account, and use the admin password
