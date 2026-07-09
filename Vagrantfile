@@ -39,6 +39,9 @@ Vagrant.configure("2") do |config|
     end
   end
 
+  # ==========================================
+  # VM3: Monitoring with Grafana and Prometheus
+  # ==========================================
   config.vm.define "grafana-monitoring" do |grafana|
     grafana.vm.hostname = "grafana-monitoring"
     grafana.vm.box = "ubuntu/jammy64" 
