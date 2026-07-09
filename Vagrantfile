@@ -38,4 +38,22 @@ Vagrant.configure("2") do |config|
       vb.name = "Podman-Host"
     end
   end
+
+  config.vm.define "grafana-monitoring" do |grafana|
+    grafana.vm.hostname = "grafana-monitoring"
+    grafana.vm.box = "ubuntu/jammy64" 
+    
+    
+    grafana.vm.network "private_network", ip: "192.168.56.22"
+    
+    grafana.vm.network "forwarded_port", guest: 3000, host: 3000, id: "grafana"
+    grafana.vm.network "forwarded_port", guest: 9090, host: 9091, id: "prometheus"
+
+    grafana.vm.provider "virtualbox" do |vb|
+      vb.gui = false
+      vb.memory = 2048
+      vb.cpus = 1
+      vb.name = "Grafana-Monitoring"
+    end
+  end
 end
