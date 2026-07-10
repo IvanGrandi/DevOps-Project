@@ -105,8 +105,7 @@ sudo apt-get install -y podman curl
 
 Deploys Podman (the daemonless container management tool used to instantiate independent job spaces) alongside `curl` to query endpoints and download scripts.
 
-#### 4. Create the Podman API systemd Service File (Corrected Syntax)
-
+#### 4. Create the Podman API systemd Service File
 ```bash
 sudo tee /etc/systemd/system/podman-api.service << 'EOF'
 [Unit]
