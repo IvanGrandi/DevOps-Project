@@ -10,6 +10,7 @@ This infrastructure aims to safely test and deploy a production instance of the 
 
 - **VM 1 (`jenkins-master`):** Acts as the CI/CD Controller. It orchestrates workflows, manages source code tracking, and holds configuration settings.
 - **VM 2 (`podman-host`):** Acts as an isolated worker environment. It runs short-lived containers on-demand to test code, and hosts the final running web application using Podman's REST API.
+- **VM 3 (`grafana-monitoring`):** Acts as the monitoring stack of our application. It deploys three infrastructure-tracking containers (Grafana, Prometheus, and Blackbox Exporter) via Docker Compose to supervise the environment and ensure the high availability and reliability of the deployed Jellyfin production application.
 - **The Automation Flow:** When the pipeline runs, VM1 commands VM2 to automatically spin up a temporary worker container. Inside this isolated test environment, the project code is cloned, dependencies are pulled, and unit tests are executed. Once the tests pass, the verified software is deployed into a separate production container, its live web entry point is tested, and a summary alert is sent to a Discord channel. Immediately after the pipeline concludes, the temporary test container is completely destroyed to keep VM2 clean and free up system resources.
 
 ---
@@ -159,6 +160,134 @@ sudo podman ps
 
 Runs a diagnostic series to confirm the API listener service is operational and properly attached to network port `2375`.
 
+### VM 3: Grafana & Prometheus Monitoring Setup
+
+#### 1. Connect to the Monitoring Virtual Machine
+
+```bash
+vagrant ssh grafana-monitoring
+```
+
+Establishes an SSH connection to the third Vagrant virtual machine dedicated to the deployed application monitoring.
+
+#### 2. Update Package Lists & System Packages
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+Resynchronizes package index files from upstream repositories and upgrades existing software to ensure system stability and security.
+
+#### 3. Install Docker and Docker Compose
+
+```bash
+sudo apt install docker.io docker-compose -y
+```
+
+Deploys the Docker core container engine alongside the Docker Compose orchestration tool utility required to run multi-container applications.
+
+#### 4. Create Configuration Directories
+
+```bash
+mkdir -p ~/monitoring/prometheus
+cd ~/monitoring
+```
+
+Generates the required local structural directories on the host operating system to cleanly store configuration scripts.
+
+#### 5. Initialize the Prometheus Configuration File
+
+```bash
+nano prometheus/prometheus.yml
+```
+
+Opens the text editor to define the custom scraping parameters and endpoints targets for the Prometheus monitoring engine.
+
+```bash                                                                       
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'jellyfin-status'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://192.168.56.21:8096
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+```
+
+Defines internal targets and instructs Prometheus to route HTTP network health probes toward the VM2 production server via the Blackbox Exporter proxy module.
+
+
+#### 6. Create the Multi-Container Orchestration File
+
+```bash
+nano docker-compose.yml
+```
+
+Initializes the deployment workspace to construct the multi-container stack assembly configuration.
+
+```bash
+version: '3.8'
+
+services:
+  prometheus:
+    container_name: prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  blackbox-exporter:
+    image: prom/blackbox-exporter:latest
+    container_name: blackbox-exporter
+    ports:
+      - "9115:9115"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  grafana-storage:
+```
+
+Declares operational mappings, volume specifications, environment isolation parameters, and external port rules for the three monitoring services.
+
+
+#### 7. Launch the Infrastructure Stack Containers
+
+```bash
+sudo docker-compose up -d
+```
+Parses the local docker-compose.yml blueprint file to download upstream image caches, mount configurations, and start all services concurrently in detached background mode.
+
+#### 8. Verify Running Monitoring Services
+
+```bash
+sudo docker ps
+```
+
+Executes a live status matrix scan to confirm that Grafana, Prometheus, and Blackbox Exporter containers are fully active, running, and healthy.
 ---
 
 ## Part 2: CI/CD Pipeline Workflow
