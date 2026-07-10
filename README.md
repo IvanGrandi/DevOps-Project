@@ -1,5 +1,12 @@
 # Project Documentation: Multi-VM CI/CD Pipeline Automation
 
+Participants :
+
+- Christopher Dubois
+- Ivan Grandi
+- Paul Leflon
+- Antoine Cortial
+
 ## Project Overview
 
 This project establishes an automated Continuous Integration and Continuous Deployment (CI/CD) infrastructure using two virtual machines managed by Vagrant.
@@ -107,6 +114,7 @@ sudo apt-get install -y podman curl
 Deploys Podman (the daemonless container management tool used to instantiate independent job spaces) alongside `curl` to query endpoints and download scripts.
 
 #### 4. Create the Podman API systemd Service File
+
 ```bash
 sudo tee /etc/systemd/system/podman-api.service << 'EOF'
 [Unit]
@@ -175,6 +183,7 @@ Establishes an SSH connection to the third Vagrant virtual machine dedicated to 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
+
 Resynchronizes package index files from upstream repositories and upgrades existing software to ensure system stability and security.
 
 #### 3. Install Docker and Docker Compose
@@ -202,7 +211,7 @@ nano prometheus/prometheus.yml
 
 Opens the text editor to define the custom scraping parameters and endpoints targets for the Prometheus monitoring engine.
 
-```bash                                                                       
+```bash
 global:
   scrape_interval: 15s
 
@@ -229,7 +238,6 @@ scrape_configs:
 ```
 
 Defines internal targets and instructs Prometheus to route HTTP network health probes toward the VM2 production server via the Blackbox Exporter proxy module.
-
 
 #### 6. Create the Multi-Container Orchestration File
 
@@ -273,12 +281,12 @@ volumes:
 
 Declares operational mappings, volume specifications, environment isolation parameters, and external port rules for the three monitoring services.
 
-
 #### 7. Launch the Infrastructure Stack Containers
 
 ```bash
 sudo docker-compose up -d
 ```
+
 Parses the local docker-compose.yml blueprint file to download upstream image caches, mount configurations, and start all services concurrently in detached background mode.
 
 #### 8. Verify Running Monitoring Services
@@ -287,8 +295,7 @@ Parses the local docker-compose.yml blueprint file to download upstream image ca
 sudo docker ps
 ```
 
-Executes a live status matrix scan to confirm that Grafana, Prometheus, and Blackbox Exporter containers are fully active, running, and healthy.
----
+## Executes a live status matrix scan to confirm that Grafana, Prometheus, and Blackbox Exporter containers are fully active, running, and healthy.
 
 ## Part 2: CI/CD Pipeline Workflow
 
