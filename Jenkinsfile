@@ -2,7 +2,7 @@ pipeline {
     agent { label 'dynamic-agent' } 
 
     environment {
-        DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1521450285392724032/Y_eKlO4j5s8I4iYZ2lI9sb61zupVyROOeCXBUTgj_SRz3zeCTOMwsQEu27OKRe_jcXc0"
+        DISCORD_WEBHOOK = "YOUR_DISCORD_WEBHOOK"
         PODMAN_API    = 'http://192.168.56.21:2375/v1.40'
         APP_NAME      = 'jellyfin-production'
         IMAGE_NAME    = 'docker.io/jellyfin/jellyfin:latest'
